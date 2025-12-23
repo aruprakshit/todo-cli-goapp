@@ -28,16 +28,45 @@ func cmdAdd(title, priority, category string) error {
 	return nil
 }
 
-func cmdList() error {
-	query := "SELECT id, title, priority, category, done FROM todos WHERE done = 0"
-	rows, err := db.Query(query)
+func cmdList(showAll, showDone bool, priority, category string) error {
+	query := `SELECT id, title, priority, category, done FROM todos`
+	conditions := []string{}
+	args := []any{}
+	if showDone {
+		conditions = append(conditions, "done = 1")
+	} else if !showAll {
+		// default - only pending
+		conditions = append(conditions, "done = 0")
+	}
+
+	if category != "" {
+		conditions = append(conditions, "category = ?")
+		args = append(args, category)
+	}
+
+	if priority != "" {
+		conditions = append(conditions, "priority = ?")
+		args = append(args, priority)
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	rows, err := db.Query(query, args...)
 
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	fmt.Println("\n Pending Todos:")
+	if showDone {
+		fmt.Println("\nCompleted Todos:")
+	} else if showAll {
+		fmt.Println("\nAll Todos:")
+	} else {
+		fmt.Println("\nPending Todos:")
+	}
 	fmt.Println("---------------------------------------")
 
 	for rows.Next() {
@@ -49,7 +78,12 @@ func cmdList() error {
 			return err
 		}
 
-		fmt.Printf("[%d] %s (priority: %s", id, title, priority)
+		status := " "
+		if done == 1 {
+			status = "✓"
+		}
+
+		fmt.Printf("[%s] #[%d] %s (priority: %s", status, id, title, priority)
 		if category != "" {
 			fmt.Printf(", Category: %s", category)
 		}

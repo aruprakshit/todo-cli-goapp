@@ -29,7 +29,7 @@ func main() {
 
 		// Define flags
 		priority := addCmd.String("priority", "medium", "Prioriy: low, medium, high")
-		category := addCmd.String("caegory", "", "Category for the todo")
+		category := addCmd.String("category", "", "Category for the todo")
 
 		addCmd.Parse(os.Args[2:])
 		args := addCmd.Args()
@@ -46,7 +46,14 @@ func main() {
 			os.Exit(1)
 		}
 	case "list":
-		err := cmdList()
+		listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+		showAll := listCmd.Bool("all", false, "Show all todos")
+		showDone := listCmd.Bool("done", false, "Show only completed")
+		priority := listCmd.String("priority", "", "Filter by priority")
+		category := listCmd.String("category", "", "Filter by category")
+		listCmd.Parse(os.Args[2:])
+
+		err := cmdList(*showAll, *showDone, *priority, *category)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
