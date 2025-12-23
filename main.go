@@ -14,9 +14,16 @@ func main() {
 
 	defer db.Close()
 
-	err = cmdAdd("Buy Eggs", "high", "shopping")
+	// Add a test todo
+	err = cmdAdd("Buy groceries", "low", "shopping")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
+	}
+
+	// List all todos
+	err = cmdList()
+	if err != nil {
+		fmt.Println("Error:", err)
 	}
 }
