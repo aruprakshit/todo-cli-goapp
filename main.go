@@ -13,4 +13,10 @@ func main() {
 	fmt.Println("Database initialized successfully!")
 
 	defer db.Close()
+
+	err = cmdAdd("Buy Eggs", "high", "shopping")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 }
