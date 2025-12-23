@@ -120,6 +120,30 @@ func main() {
 			fmt.Println("Error:", err)
 			os.Exit(1)
 		}
+	case "edit":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: todo edit <id> [--title text] [--priority low|medium|high] [--category name]")
+			os.Exit(1)
+		}
+
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Error: invalid ID")
+			os.Exit(1)
+		}
+
+		editCmd := flag.NewFlagSet("edit", flag.ExitOnError)
+		title := editCmd.String("title", "", "New title")
+		priority := editCmd.String("priority", "", "New priority")
+		category := editCmd.String("category", "", "New category")
+		editCmd.Parse(os.Args[3:])
+
+		err = cmdEdit(id, *title, *priority, *category)
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
+
 	default:
 		fmt.Printf("Unknownn command: %s\n", command)
 		printUsage()
@@ -138,4 +162,5 @@ func printUsage() {
 	fmt.Println("  undone  Mark a todo as incomplete")
 	fmt.Println("  delete  Delete a todo")
 	fmt.Println("  show    Show todo details")
+	fmt.Println("  edit    Edit a todo")
 }

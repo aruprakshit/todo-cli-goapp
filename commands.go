@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -175,5 +176,50 @@ func cmdShow(id int) error {
 
 	fmt.Println("──────────────────────────────────────")
 	fmt.Println()
+	return nil
+}
+
+func cmdEdit(id int, title, priority, category string) error {
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 from todos WHERE id = ?)", id).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("todo #%d not found", id)
+	}
+
+	updates := []string{}
+	args := []any{}
+
+	if title != "" {
+		updates = append(updates, "title = ?")
+		args = append(args, title)
+	}
+
+	if priority != "" {
+		updates = append(updates, "priority = ?")
+		args = append(args, priority)
+	}
+
+	if category != "" {
+		updates = append(updates, "category = ?")
+		args = append(args, category)
+	}
+
+	if len(updates) == 0 {
+		return fmt.Errorf("nothing to update. Use --title, --priority, or --category")
+	}
+
+	query := "UPDATE todos SET " + strings.Join(updates, ", ") + " WHERE id = ?"
+	args = append(args, id)
+
+	_, err = db.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updated todo #%d\n", id)
 	return nil
 }
