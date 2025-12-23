@@ -1,13 +1,13 @@
 package main
 
-import time
+import "time"
 
 type Todo struct {
-	ID int
-	Title string
-	Done bool
-	Priority string
-	Category string
+	ID        int
+	Title     string
+	Done      bool
+	Priority  string
+	Category  string
 	CreatedAt time.Time
-	DueDate *time.Time
+	DueDate   *time.Time
 }

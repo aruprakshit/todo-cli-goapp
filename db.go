@@ -1,3 +1,5 @@
+package main
+
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
@@ -5,7 +7,7 @@ import (
 
 var db *sql.DB
 
-func InitDB() error {
+func initDB() error {
 	var err error
 
 	// open database
@@ -36,5 +38,7 @@ func InitDB() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
 
 }
