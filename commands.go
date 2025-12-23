@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 )
 
@@ -97,5 +98,35 @@ func cmdUndone(id int) error {
 	}
 
 	fmt.Printf("Marked todo #%d as not done\n", id)
+	return nil
+}
+
+func cmdDelete(id int, force bool) error {
+	var title string
+	err := db.QueryRow("SELECT title from todos WHERE id = ?", id).Scan(&title)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("todo #%d not found", id)
+		}
+		return err
+	}
+
+	if !force {
+		fmt.Printf("Delete todo #%d: \"%s\"? [y/N] ", id, title)
+		var response string
+		fmt.Scanln(&response)
+
+		if response != "y" && response != "Y" {
+			fmt.Println("Cancelled")
+			return nil
+		}
+	}
+
+	_, err = db.Exec("DELETE from todos WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Deleted todo #%d\n", id)
 	return nil
 }

@@ -83,6 +83,27 @@ func main() {
 			fmt.Println("Error:", err)
 			os.Exit(1)
 		}
+	case "delete":
+		deleteCmd := flag.NewFlagSet("delete", flag.ExitOnError)
+		force := deleteCmd.Bool("force", false, "Skip confirmation")
+		deleteCmd.Parse(os.Args[2:])
+
+		args := deleteCmd.Args()
+		if len(args) < 1 {
+			fmt.Println("Usage: todo delete <id> [--force]")
+			os.Exit(1)
+		}
+
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Println("Error: invalid ID")
+			os.Exit(1)
+		}
+		err = cmdDelete(id, *force)
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Unknownn command: %s\n", command)
 		printUsage()
@@ -99,4 +120,5 @@ func printUsage() {
 	fmt.Println("  list    List pending todos")
 	fmt.Println("  done    Mark a todo as complete")
 	fmt.Println("  undone  Mark a todo as incomplete")
+	fmt.Println("  delete  Delete a todo")
 }
