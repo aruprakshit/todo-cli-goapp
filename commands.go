@@ -59,3 +59,43 @@ func cmdList() error {
 
 	return nil
 }
+
+func cmdDone(id int) error {
+	updateSql := `UPDATE todos SET done = 1 WHERE id = ?`
+	result, err := db.Exec(updateSql, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("todo #%d not found", id)
+	}
+
+	fmt.Printf("Marked todo #%d as done\n", id)
+	return nil
+}
+
+func cmdUndone(id int) error {
+	updateSql := `UPDATE todos SET done = 0 WHERE id = ?`
+	result, err := db.Exec(updateSql, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("todo #%d not found", id)
+	}
+
+	fmt.Printf("Marked todo #%d as not done\n", id)
+	return nil
+}

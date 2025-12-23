@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -46,6 +47,38 @@ func main() {
 		}
 	case "list":
 		err := cmdList()
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
+	case "done":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: todo done <id>")
+			os.Exit(1)
+		}
+
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Error: invalid ID")
+			os.Exit(1)
+		}
+		err = cmdDone(id)
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
+	case "undone":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: todo undone <id>")
+			os.Exit(1)
+		}
+
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Error: invalid ID")
+			os.Exit(1)
+		}
+		err = cmdUndone(id)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
