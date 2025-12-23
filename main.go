@@ -97,4 +97,6 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  add     Add a new todo")
 	fmt.Println("  list    List pending todos")
+	fmt.Println("  done    Mark a todo as complete")
+	fmt.Println("  undone  Mark a todo as incomplete")
 }
