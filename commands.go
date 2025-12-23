@@ -257,3 +257,61 @@ func cmdEdit(id int, title, priority, category string) error {
 	fmt.Printf("Updated todo #%d\n", id)
 	return nil
 }
+
+func cmdClear(clearAll bool) error {
+	var count int
+	var query string
+
+	if clearAll {
+		query = "SELECT COUNT(*) FROM todos"
+	} else {
+		query = "SELECT COUNT(*) FROM todos WHERE done = 1"
+	}
+
+	err := db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		if clearAll {
+			fmt.Println("No todos to clear")
+		} else {
+			fmt.Println("No completed todos to clear")
+		}
+		return nil
+	}
+
+	if clearAll {
+		fmt.Printf("Delete ALL %d todos? This cannot be undone. [y/N] ", count)
+	} else {
+		fmt.Printf("Delete %d completed todos? [y/N] ", count)
+	}
+
+	var response string
+	fmt.Scanln(&response)
+
+	if response != "y" && response != "Y" {
+		fmt.Println("Cancelled")
+		return nil
+	}
+
+	if clearAll {
+		_, err = db.Exec("DELETE FROM todos")
+	} else {
+		_, err = db.Exec("DELETE FROM todos WHERE done = 1")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if clearAll {
+		fmt.Printf("Cleared all %d todos\n", count)
+	} else {
+		fmt.Printf("Cleared %d completed todos\n", count)
+	}
+
+	return nil
+
+}

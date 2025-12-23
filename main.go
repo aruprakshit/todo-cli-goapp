@@ -150,6 +150,16 @@ func main() {
 			fmt.Println("Error:", err)
 			os.Exit(1)
 		}
+	case "clear":
+		clearCmd := flag.NewFlagSet("clear", flag.ExitOnError)
+		clearAll := clearCmd.Bool("all", false, "Clear ALL todos")
+		clearCmd.Parse(os.Args[2:])
+
+		err := cmdClear(*clearAll)
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
 
 	default:
 		fmt.Printf("Unknownn command: %s\n", command)
@@ -170,4 +180,5 @@ func printUsage() {
 	fmt.Println("  delete  Delete a todo")
 	fmt.Println("  show    Show todo details")
 	fmt.Println("  edit    Edit a todo")
+	fmt.Println("  clear   Remove completed todos")
 }
