@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 func cmdAdd(title, priority, category string) error {
@@ -128,5 +129,51 @@ func cmdDelete(id int, force bool) error {
 	}
 
 	fmt.Printf("Deleted todo #%d\n", id)
+	return nil
+}
+
+func cmdShow(id int) error {
+	query := `SELECT id, title, done, priority, category, created_at, due_date FROM todos WHERE id = ?`
+	var todoId, done int
+	var title, priority, category string
+	var createdAt time.Time
+	var dueDate sql.NullTime
+
+	err := db.QueryRow(query, id).Scan(&todoId, &title, &done, &priority, &category, &createdAt, &dueDate)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("todo #%d not found", id)
+		}
+		return err
+	}
+
+	fmt.Println()
+	fmt.Println("──────────────────────────────────────")
+	fmt.Printf("  ID:        %d\n", todoId)
+	fmt.Printf("  Title:     %s\n", title)
+
+	// Show status
+	if done == 1 {
+		fmt.Printf("  Status:    Done\n")
+	} else {
+		fmt.Printf("  Status:    Pending\n")
+	}
+
+	fmt.Printf("  Priority:  %s\n", priority)
+
+	// Only show category if not empty
+	if category != "" {
+		fmt.Printf("  Category:  %s\n", category)
+	}
+
+	fmt.Printf("  Created:   %s\n", createdAt.Format("2006-01-02 15:04"))
+
+	// Only show due date if set
+	if dueDate.Valid {
+		fmt.Printf("  Due:       %s\n", dueDate.Time.Format("2006-01-02"))
+	}
+
+	fmt.Println("──────────────────────────────────────")
+	fmt.Println()
 	return nil
 }

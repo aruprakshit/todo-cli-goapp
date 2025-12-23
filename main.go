@@ -104,6 +104,22 @@ func main() {
 			fmt.Println("Error:", err)
 			os.Exit(1)
 		}
+	case "show":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: todo show <id>")
+			os.Exit(1)
+		}
+
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("Error: invalid ID")
+			os.Exit(1)
+		}
+		err = cmdShow(id)
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Unknownn command: %s\n", command)
 		printUsage()
@@ -121,4 +137,5 @@ func printUsage() {
 	fmt.Println("  done    Mark a todo as complete")
 	fmt.Println("  undone  Mark a todo as incomplete")
 	fmt.Println("  delete  Delete a todo")
+	fmt.Println("  show    Show todo details")
 }
