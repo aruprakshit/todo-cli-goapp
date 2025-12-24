@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type Todo struct {
 	ID        int
@@ -9,5 +12,5 @@ type Todo struct {
 	Priority  string
 	Category  string
 	CreatedAt time.Time
-	DueDate   *time.Time
+	DueDate   sql.NullTime
 }

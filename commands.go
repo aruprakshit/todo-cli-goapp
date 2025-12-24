@@ -49,36 +49,10 @@ func cmdAdd(title, priority, category, dueDate string) error {
 }
 
 func cmdList(showAll, showDone bool, priority, category string) error {
-	query := `SELECT id, title, priority, category, done, due_date FROM todos`
-	conditions := []string{}
-	args := []any{}
-	if showDone {
-		conditions = append(conditions, "done = 1")
-	} else if !showAll {
-		// default - only pending
-		conditions = append(conditions, "done = 0")
-	}
-
-	if category != "" {
-		conditions = append(conditions, "category = ?")
-		args = append(args, category)
-	}
-
-	if priority != "" {
-		conditions = append(conditions, "priority = ?")
-		args = append(args, priority)
-	}
-
-	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
-	}
-
-	rows, err := db.Query(query, args...)
-
+	todos, err := getAllTodos(showAll, showDone, priority, category)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
 	if showDone {
 		fmt.Println("\nCompleted Todos:")
@@ -91,29 +65,20 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 
 	table := NewTable([]string{"ID", "✓", "Title", "Priority", "Category", "Due"})
 
-	for rows.Next() {
-		var id, done int
-		var title, priority, category string
-		var dueDate sql.NullTime
-
-		err := rows.Scan(&id, &title, &priority, &category, &done, &dueDate)
-		if err != nil {
-			return err
-		}
-
+	for _, todo := range todos {
 		statusDisplay := " "
-		if done == 1 {
+		if todo.Done {
 			statusDisplay = colorize(Green, "✓")
 		}
-		priorityDisplay := colorize(priorityColor(priority), priority)
-		dueDateDisplay := formatDueDate(dueDate)
+		priorityDisplay := colorize(priorityColor(todo.Priority), todo.Priority)
+		dueDateDisplay := formatDueDate(todo.DueDate)
 
 		table.AddRow([]string{
-			fmt.Sprintf("%d", id),
+			fmt.Sprintf("%d", todo.ID),
 			statusDisplay,
-			title,
+			todo.Title,
 			priorityDisplay,
-			category,
+			todo.Category,
 			dueDateDisplay,
 		})
 	}
@@ -122,10 +87,6 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 		fmt.Println("No todos found")
 	} else {
 		table.Print()
-	}
-
-	if err = rows.Err(); err != nil {
-		return err
 	}
 
 	return nil
@@ -172,17 +133,13 @@ func cmdUndone(id int) error {
 }
 
 func cmdDelete(id int, force bool) error {
-	var title string
-	err := db.QueryRow("SELECT title from todos WHERE id = ?", id).Scan(&title)
+	todo, err := getTodoByID(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("todo #%d not found", id)
-		}
 		return err
 	}
 
 	if !force {
-		fmt.Printf("Delete todo #%d: \"%s\"? [y/N] ", id, title)
+		fmt.Printf("Delete todo #%d: \"%s\"? [y/N] ", todo.ID, todo.Title)
 		var response string
 		fmt.Scanln(&response)
 
@@ -202,44 +159,35 @@ func cmdDelete(id int, force bool) error {
 }
 
 func cmdShow(id int) error {
-	query := `SELECT id, title, done, priority, category, created_at, due_date FROM todos WHERE id = ?`
-	var todoId, done int
-	var title, priority, category string
-	var createdAt time.Time
-	var dueDate sql.NullTime
-
-	err := db.QueryRow(query, id).Scan(&todoId, &title, &done, &priority, &category, &createdAt, &dueDate)
+	todo, err := getTodoByID(id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("todo #%d not found", id)
-		}
 		return err
 	}
 
 	fmt.Println()
 	fmt.Println("──────────────────────────────────────")
-	fmt.Printf("  ID:        %d\n", todoId)
-	fmt.Printf("  Title:     %s\n", title)
+	fmt.Printf("  ID:        %d\n", todo.ID)
+	fmt.Printf("  Title:     %s\n", todo.Title)
 
 	// Show status
-	if done == 1 {
+	if todo.Done {
 		fmt.Printf("  Status:    %s\n", colorize(Green, "Done"))
 	} else {
 		fmt.Printf("  Status:    %s\n", colorize(Yellow, "Pending"))
 	}
 
-	fmt.Printf("  Priority:  %s\n", colorize(priorityColor(priority), priority))
+	fmt.Printf("  Priority:  %s\n", colorize(priorityColor(todo.Priority), todo.Priority))
 
 	// Only show category if not empty
-	if category != "" {
-		fmt.Printf("  Category:  %s\n", category)
+	if todo.Category != "" {
+		fmt.Printf("  Category:  %s\n", todo.Category)
 	}
 
-	fmt.Printf("  Created:   %s\n", createdAt.Format("2006-01-02 15:04"))
+	fmt.Printf("  Created:   %s\n", todo.CreatedAt.Format("2006-01-02 15:04"))
 
 	// Only show due date if set
-	if dueDate.Valid {
-		fmt.Printf("  Due:       %s\n", formatDueDate(dueDate))
+	if todo.DueDate.Valid {
+		fmt.Printf("  Due:       %s\n", formatDueDate(todo.DueDate))
 	}
 
 	fmt.Println("──────────────────────────────────────")
@@ -248,14 +196,9 @@ func cmdShow(id int) error {
 }
 
 func cmdEdit(id int, title, priority, category, dueDate string) error {
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 from todos WHERE id = ?)", id).Scan(&exists)
+	_, err := getTodoByID(id)
 	if err != nil {
 		return err
-	}
-
-	if !exists {
-		return fmt.Errorf("todo #%d not found", id)
 	}
 
 	updates := []string{}
