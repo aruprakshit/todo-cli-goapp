@@ -1,5 +1,35 @@
 package main
 
+import (
+	"database/sql"
+	"time"
+)
+
+func formatDueDate(dueDate sql.NullTime) string {
+	if !dueDate.Valid {
+		return ""
+	}
+
+	due := dueDate.Time
+	today := time.Now().Truncate(24 * time.Hour)
+	dueDay := due.Truncate(24 * time.Hour)
+
+	daysUntil := int(dueDay.Sub(today).Hours() / 24)
+
+	dateStr := due.Format("2006-01-02")
+
+	if daysUntil < 0 {
+		return colorize(Red, dateStr+" (OVERDUE)")
+	} else if daysUntil == 0 {
+		return colorize(Red, dateStr+" (TODAY)")
+	} else if daysUntil == 1 {
+		return colorize(Yellow, dateStr+" (tomorrow)")
+	} else if daysUntil <= 3 {
+		return colorize(Yellow, dateStr)
+	}
+	return colorize(Green, dateStr)
+}
+
 // ANSI color codes
 const (
 	Reset  = "\033[0m"

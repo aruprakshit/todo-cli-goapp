@@ -30,17 +30,17 @@ func main() {
 		// Define flags
 		priority := addCmd.String("priority", "medium", "Prioriy: low, medium, high")
 		category := addCmd.String("category", "", "Category for the todo")
+		dueDate := addCmd.String("due", "", "Due date: YYYY-MM-DD")
 
 		addCmd.Parse(os.Args[2:])
 		args := addCmd.Args()
 		if len(args) < 1 {
-			fmt.Println("Error: title is required")
-			fmt.Println("Usage: todo add <title> [--priority low|medium|high] [--category name]")
+			fmt.Println("Usage: todo add [--priority low|medium|high] [--category name] [--due YYYY-MM-DD] <title>")
 			os.Exit(1)
 		}
 		title := args[0]
 
-		err := cmdAdd(title, *priority, *category)
+		err := cmdAdd(title, *priority, *category, *dueDate)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
@@ -129,7 +129,7 @@ func main() {
 		}
 	case "edit":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: todo edit <id> [--title text] [--priority low|medium|high] [--category name]")
+			fmt.Println("Usage: todo edit <id> [--title text] [--due YYYY-MM-DD] [--priority low|medium|high] [--category name]")
 			os.Exit(1)
 		}
 
@@ -143,9 +143,11 @@ func main() {
 		title := editCmd.String("title", "", "New title")
 		priority := editCmd.String("priority", "", "New priority")
 		category := editCmd.String("category", "", "New category")
+		dueDate := editCmd.String("due", "", "Due date: YYYY-MM-DD")
+
 		editCmd.Parse(os.Args[3:])
 
-		err = cmdEdit(id, *title, *priority, *category)
+		err = cmdEdit(id, *title, *priority, *category, *dueDate)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)

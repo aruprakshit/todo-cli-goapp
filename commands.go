@@ -7,14 +7,34 @@ import (
 	"time"
 )
 
-func cmdAdd(title, priority, category string) error {
+func parseDate(dateStr string) (time.Time, error) {
+	return time.Parse("2006-01-02", dateStr)
+}
+
+func cmdAdd(title, priority, category, dueDate string) error {
 	if title == "" {
 		return fmt.Errorf("title can not be empty")
 	}
 
-	insertSQL := `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?)`
+	if dueDate != "" {
+		_, err := parseDate(dueDate)
+		if err != nil {
+			return fmt.Errorf("invalid date format. Use YYYY-MM-DD")
+		}
+	}
 
-	result, err := db.Exec(insertSQL, title, priority, category)
+	var insertSQL string
+	var result sql.Result
+	var err error
+
+	if dueDate != "" {
+		insertSQL = `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?, ?)`
+		result, err = db.Exec(insertSQL, title, priority, category, dueDate)
+	} else {
+		insertSQL = `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?)`
+		result, err = db.Exec(insertSQL, title, priority, category)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -29,7 +49,7 @@ func cmdAdd(title, priority, category string) error {
 }
 
 func cmdList(showAll, showDone bool, priority, category string) error {
-	query := `SELECT id, title, priority, category, done FROM todos`
+	query := `SELECT id, title, priority, category, done, due_date FROM todos`
 	conditions := []string{}
 	args := []any{}
 	if showDone {
@@ -69,13 +89,14 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 	}
 	fmt.Println("---------------------------------------")
 
-	table := NewTable([]string{"ID", "✓", "Title", "Priority", "Category"})
+	table := NewTable([]string{"ID", "✓", "Title", "Priority", "Category", "Due"})
 
 	for rows.Next() {
 		var id, done int
 		var title, priority, category string
+		var dueDate sql.NullTime
 
-		err := rows.Scan(&id, &title, &priority, &category, &done)
+		err := rows.Scan(&id, &title, &priority, &category, &done, &dueDate)
 		if err != nil {
 			return err
 		}
@@ -85,6 +106,7 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 			statusDisplay = colorize(Green, "✓")
 		}
 		priorityDisplay := colorize(priorityColor(priority), priority)
+		dueDateDisplay := formatDueDate(dueDate)
 
 		table.AddRow([]string{
 			fmt.Sprintf("%d", id),
@@ -92,6 +114,7 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 			title,
 			priorityDisplay,
 			category,
+			dueDateDisplay,
 		})
 	}
 
@@ -216,7 +239,7 @@ func cmdShow(id int) error {
 
 	// Only show due date if set
 	if dueDate.Valid {
-		fmt.Printf("  Due:       %s\n", dueDate.Time.Format("2006-01-02"))
+		fmt.Printf("  Due:       %s\n", formatDueDate(dueDate))
 	}
 
 	fmt.Println("──────────────────────────────────────")
@@ -224,7 +247,7 @@ func cmdShow(id int) error {
 	return nil
 }
 
-func cmdEdit(id int, title, priority, category string) error {
+func cmdEdit(id int, title, priority, category, dueDate string) error {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT 1 from todos WHERE id = ?)", id).Scan(&exists)
 	if err != nil {
@@ -241,6 +264,15 @@ func cmdEdit(id int, title, priority, category string) error {
 	if title != "" {
 		updates = append(updates, "title = ?")
 		args = append(args, title)
+	}
+
+	if dueDate != "" {
+		_, err := parseDate(dueDate)
+		if err != nil {
+			return fmt.Errorf("invalid date format. Use YYYY-MM-DD")
+		}
+		updates = append(updates, "due_date = ?")
+		args = append(args, dueDate)
 	}
 
 	if priority != "" {
