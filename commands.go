@@ -1,9 +1,7 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -23,23 +21,7 @@ func cmdAdd(title, priority, category, dueDate string) error {
 		}
 	}
 
-	var insertSQL string
-	var result sql.Result
-	var err error
-
-	if dueDate != "" {
-		insertSQL = `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?, ?)`
-		result, err = db.Exec(insertSQL, title, priority, category, dueDate)
-	} else {
-		insertSQL = `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?)`
-		result, err = db.Exec(insertSQL, title, priority, category)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	id, err := result.LastInsertId()
+	id, err := insertTodo(title, priority, category, dueDate)
 	if err != nil {
 		return err
 	}
@@ -93,19 +75,9 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 }
 
 func cmdDone(id int) error {
-	updateSql := `UPDATE todos SET done = 1 WHERE id = ?`
-	result, err := db.Exec(updateSql, id)
+	err := updateTodoStatus(id, true)
 	if err != nil {
 		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("todo #%d not found", id)
 	}
 
 	fmt.Printf("%s Marked todo #%d as done\n", colorize(Green, "✓"), id)
@@ -113,19 +85,9 @@ func cmdDone(id int) error {
 }
 
 func cmdUndone(id int) error {
-	updateSql := `UPDATE todos SET done = 0 WHERE id = ?`
-	result, err := db.Exec(updateSql, id)
+	err := updateTodoStatus(id, false)
 	if err != nil {
 		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("todo #%d not found", id)
 	}
 
 	fmt.Printf("%s Marked todo #%d as not done\n", colorize(Blue, "x"), id)
@@ -149,7 +111,7 @@ func cmdDelete(id int, force bool) error {
 		}
 	}
 
-	_, err = db.Exec("DELETE from todos WHERE id = ?", id)
+	err = deleteTodo(id)
 	if err != nil {
 		return err
 	}
@@ -201,41 +163,18 @@ func cmdEdit(id int, title, priority, category, dueDate string) error {
 		return err
 	}
 
-	updates := []string{}
-	args := []any{}
-
-	if title != "" {
-		updates = append(updates, "title = ?")
-		args = append(args, title)
-	}
-
 	if dueDate != "" {
 		_, err := parseDate(dueDate)
 		if err != nil {
 			return fmt.Errorf("invalid date format. Use YYYY-MM-DD")
 		}
-		updates = append(updates, "due_date = ?")
-		args = append(args, dueDate)
 	}
 
-	if priority != "" {
-		updates = append(updates, "priority = ?")
-		args = append(args, priority)
+	if title == "" && priority == "" && category == "" && dueDate == "" {
+		return fmt.Errorf("nothing to update. Use --title, --priority, --category, or --due")
 	}
 
-	if category != "" {
-		updates = append(updates, "category = ?")
-		args = append(args, category)
-	}
-
-	if len(updates) == 0 {
-		return fmt.Errorf("nothing to update. Use --title, --priority, or --category")
-	}
-
-	query := "UPDATE todos SET " + strings.Join(updates, ", ") + " WHERE id = ?"
-	args = append(args, id)
-
-	_, err = db.Exec(query, args...)
+	err = updateTodo(id, title, priority, category, dueDate)
 	if err != nil {
 		return err
 	}
@@ -245,16 +184,7 @@ func cmdEdit(id int, title, priority, category, dueDate string) error {
 }
 
 func cmdClear(clearAll bool) error {
-	var count int
-	var query string
-
-	if clearAll {
-		query = "SELECT COUNT(*) FROM todos"
-	} else {
-		query = "SELECT COUNT(*) FROM todos WHERE done = 1"
-	}
-
-	err := db.QueryRow(query).Scan(&count)
+	count, err := countTodos(!clearAll)
 	if err != nil {
 		return err
 	}
@@ -282,12 +212,7 @@ func cmdClear(clearAll bool) error {
 		return nil
 	}
 
-	if clearAll {
-		_, err = db.Exec("DELETE FROM todos")
-	} else {
-		_, err = db.Exec("DELETE FROM todos WHERE done = 1")
-	}
-
+	err = clearTodos(clearAll)
 	if err != nil {
 		return err
 	}
@@ -299,5 +224,4 @@ func cmdClear(clearAll bool) error {
 	}
 
 	return nil
-
 }

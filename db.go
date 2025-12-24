@@ -90,6 +90,114 @@ func scanTodo(row *sql.Row) (*Todo, error) {
 	return &todo, nil
 }
 
+func insertTodo(title, priority, category, dueDate string) (int64, error) {
+	var result sql.Result
+	var err error
+
+	if dueDate != "" {
+		query := `INSERT INTO todos (title, priority, category, due_date) VALUES (?, ?, ?, ?)`
+		result, err = db.Exec(query, title, priority, category, dueDate)
+	} else {
+		query := `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?)`
+		result, err = db.Exec(query, title, priority, category)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.LastInsertId()
+}
+
+func updateTodoStatus(id int, done bool) error {
+	doneVal := 0
+	if done {
+		doneVal = 1
+	}
+
+	result, err := db.Exec(`UPDATE todos SET done = ? WHERE id = ?`, doneVal, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("todo #%d not found", id)
+	}
+
+	return nil
+}
+
+func deleteTodo(id int) error {
+	_, err := db.Exec("DELETE FROM todos WHERE id = ?", id)
+	return err
+}
+
+func updateTodo(id int, title, priority, category, dueDate string) error {
+	updates := []string{}
+	args := []any{}
+
+	if title != "" {
+		updates = append(updates, "title = ?")
+		args = append(args, title)
+	}
+
+	if dueDate != "" {
+		updates = append(updates, "due_date = ?")
+		args = append(args, dueDate)
+	}
+
+	if priority != "" {
+		updates = append(updates, "priority = ?")
+		args = append(args, priority)
+	}
+
+	if category != "" {
+		updates = append(updates, "category = ?")
+		args = append(args, category)
+	}
+
+	if len(updates) == 0 {
+		return nil
+	}
+
+	query := "UPDATE todos SET " + strings.Join(updates, ", ") + " WHERE id = ?"
+	args = append(args, id)
+
+	_, err := db.Exec(query, args...)
+	return err
+}
+
+func countTodos(completedOnly bool) (int, error) {
+	var count int
+	var query string
+
+	if completedOnly {
+		query = "SELECT COUNT(*) FROM todos WHERE done = 1"
+	} else {
+		query = "SELECT COUNT(*) FROM todos"
+	}
+
+	err := db.QueryRow(query).Scan(&count)
+	return count, err
+}
+
+func clearTodos(all bool) error {
+	var err error
+
+	if all {
+		_, err = db.Exec("DELETE FROM todos")
+	} else {
+		_, err = db.Exec("DELETE FROM todos WHERE done = 1")
+	}
+
+	return err
+}
+
 func initDB() error {
 	var err error
 
