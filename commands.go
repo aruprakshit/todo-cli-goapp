@@ -69,6 +69,8 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 	}
 	fmt.Println("---------------------------------------")
 
+	table := NewTable([]string{"ID", "✓", "Title", "Priority", "Category"})
+
 	for rows.Next() {
 		var id, done int
 		var title, priority, category string
@@ -84,16 +86,19 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 		}
 		priorityDisplay := colorize(priorityColor(priority), priority)
 
-		fmt.Printf("[%s] %s#%d%s %s (priority: %s",
+		table.AddRow([]string{
+			fmt.Sprintf("%d", id),
 			statusDisplay,
-			Gray, id, Reset,
 			title,
 			priorityDisplay,
-		)
-		if category != "" {
-			fmt.Printf(", Category: %s", category)
-		}
-		fmt.Println(")")
+			category,
+		})
+	}
+
+	if len(table.Rows) == 0 {
+		fmt.Println("No todos found")
+	} else {
+		table.Print()
 	}
 
 	if err = rows.Err(); err != nil {
