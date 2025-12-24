@@ -24,7 +24,7 @@ func cmdAdd(title, priority, category string) error {
 		return err
 	}
 
-	fmt.Printf("Added todo #%d: %s\n", id, title)
+	fmt.Printf("%s Added todo #%d: %s\n", colorize(Green, "✓"), id, title)
 	return nil
 }
 
@@ -119,7 +119,7 @@ func cmdDone(id int) error {
 		return fmt.Errorf("todo #%d not found", id)
 	}
 
-	fmt.Printf("Marked todo #%d as done\n", id)
+	fmt.Printf("%s Marked todo #%d as done\n", colorize(Green, "✓"), id)
 	return nil
 }
 
@@ -139,7 +139,7 @@ func cmdUndone(id int) error {
 		return fmt.Errorf("todo #%d not found", id)
 	}
 
-	fmt.Printf("Marked todo #%d as not done\n", id)
+	fmt.Printf("%s Marked todo #%d as not done\n", colorize(Blue, "x"), id)
 	return nil
 }
 
@@ -169,7 +169,7 @@ func cmdDelete(id int, force bool) error {
 		return err
 	}
 
-	fmt.Printf("Deleted todo #%d\n", id)
+	fmt.Printf("%s Deleted todo #%d\n", colorize(Red, "✗"), id)
 	return nil
 }
 
@@ -195,12 +195,12 @@ func cmdShow(id int) error {
 
 	// Show status
 	if done == 1 {
-		fmt.Printf("  Status:    Done\n")
+		fmt.Printf("  Status:    %s\n", colorize(Green, "Done"))
 	} else {
-		fmt.Printf("  Status:    Pending\n")
+		fmt.Printf("  Status:    %s\n", colorize(Yellow, "Pending"))
 	}
 
-	fmt.Printf("  Priority:  %s\n", priority)
+	fmt.Printf("  Priority:  %s\n", colorize(priorityColor(priority), priority))
 
 	// Only show category if not empty
 	if category != "" {
