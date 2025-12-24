@@ -78,12 +78,18 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 			return err
 		}
 
-		status := " "
+		statusDisplay := " "
 		if done == 1 {
-			status = "✓"
+			statusDisplay = colorize(Green, "✓")
 		}
+		priorityDisplay := colorize(priorityColor(priority), priority)
 
-		fmt.Printf("[%s] #[%d] %s (priority: %s", status, id, title, priority)
+		fmt.Printf("[%s] %s#%d%s %s (priority: %s",
+			statusDisplay,
+			Gray, id, Reset,
+			title,
+			priorityDisplay,
+		)
 		if category != "" {
 			fmt.Printf(", Category: %s", category)
 		}
