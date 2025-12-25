@@ -198,6 +198,22 @@ func clearTodos(all bool) error {
 	return err
 }
 
+func createTables() error {
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS todos (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		done INTEGER DEFAULT 0,
+		priority TEXT DEFAULT 'medium',
+		category TEXT DEFAULT '',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		due_date DATETIME
+	)`
+
+	_, err := db.Exec(createTableSQL)
+	return err
+}
+
 func initDB() error {
 	var err error
 
@@ -213,23 +229,5 @@ func initDB() error {
 		return err
 	}
 
-	// Create table
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS todos (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		done INTEGER DEFAULT 0,
-		priority TEXT DEFAULT 'medium',
-		category TEXT DEFAULT '',
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		due_date DATETIME
-	)`
-
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+	return createTables()
 }
