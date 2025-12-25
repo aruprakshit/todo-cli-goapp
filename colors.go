@@ -30,24 +30,27 @@ func formatDueDate(dueDate sql.NullTime) string {
 	return colorize(Green, dateStr)
 }
 
+// Color represents an ANSI color code
+type Color string
+
 // ANSI color codes
 const (
-	Reset  = "\033[0m"
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Purple = "\033[35m"
-	Cyan   = "\033[36m"
-	Gray   = "\033[90m"
-	Bold   = "\033[1m"
+	Reset  Color = "\033[0m"
+	Red    Color = "\033[31m"
+	Green  Color = "\033[32m"
+	Yellow Color = "\033[33m"
+	Blue   Color = "\033[34m"
+	Purple Color = "\033[35m"
+	Cyan   Color = "\033[36m"
+	Gray   Color = "\033[90m"
+	Bold   Color = "\033[1m"
 )
 
-func colorize(color, text string) string {
-	return color + text + Reset
+func colorize(color Color, text string) string {
+	return string(color) + text + string(Reset)
 }
 
-func priorityColor(p Priority) string {
+func priorityColor(p Priority) Color {
 	switch p {
 	case PriorityHigh:
 		return Red
