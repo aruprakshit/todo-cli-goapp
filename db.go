@@ -109,13 +109,16 @@ func insertTodo(title, priority, category, dueDate string) (int64, error) {
 	return result.LastInsertId()
 }
 
-func updateTodoStatus(id int, done bool) error {
-	doneVal := 0
-	if done {
-		doneVal = 1
-	}
+func markTodoAsDone(id int) error {
+	return setTodoStatus(id, 1)
+}
 
-	result, err := db.Exec(`UPDATE todos SET done = ? WHERE id = ?`, doneVal, id)
+func markTodoAsUndone(id int) error {
+	return setTodoStatus(id, 0)
+}
+
+func setTodoStatus(id int, done int) error {
+	result, err := db.Exec(`UPDATE todos SET done = ? WHERE id = ?`, done, id)
 	if err != nil {
 		return err
 	}
@@ -172,29 +175,25 @@ func updateTodo(id int, title, priority, category, dueDate string) error {
 	return err
 }
 
-func countTodos(completedOnly bool) (int, error) {
+func countAllTodos() (int, error) {
 	var count int
-	var query string
-
-	if completedOnly {
-		query = "SELECT COUNT(*) FROM todos WHERE done = 1"
-	} else {
-		query = "SELECT COUNT(*) FROM todos"
-	}
-
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM todos").Scan(&count)
 	return count, err
 }
 
-func clearTodos(all bool) error {
-	var err error
+func countCompletedTodos() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM todos WHERE done = 1").Scan(&count)
+	return count, err
+}
 
-	if all {
-		_, err = db.Exec("DELETE FROM todos")
-	} else {
-		_, err = db.Exec("DELETE FROM todos WHERE done = 1")
-	}
+func clearAllTodos() error {
+	_, err := db.Exec("DELETE FROM todos")
+	return err
+}
 
+func clearCompletedTodos() error {
+	_, err := db.Exec("DELETE FROM todos WHERE done = 1")
 	return err
 }
 

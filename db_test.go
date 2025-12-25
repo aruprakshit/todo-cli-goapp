@@ -177,7 +177,7 @@ func TestGetAllTodos_Filters(t *testing.T) {
 	insertTestTodo(t, "Task 3", "high", "work", "")
 
 	// Mark Task 2 as done
-	updateTodoStatus(2, true)
+	markTodoAsDone(2)
 
 	tests := []struct {
 		name      string
@@ -251,44 +251,48 @@ func TestGetAllTodos_Filters(t *testing.T) {
 	}
 }
 
-func TestUpdateTodoStatus(t *testing.T) {
+func TestMarkTodoAsDone(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
 	insertTestTodo(t, "Test task", "medium", "", "")
 
-	// Mark as done
-	err := updateTodoStatus(1, true)
+	err := markTodoAsDone(1)
 	if err != nil {
-		t.Fatalf("updateTodoStatus(done=true) error = %v", err)
+		t.Fatalf("markTodoAsDone() error = %v", err)
 	}
 
-	// Verify it's done
 	todo, _ := getTodoByID(1)
 	if !todo.Done {
 		t.Errorf("Todo should be done, but Done = %v", todo.Done)
 	}
+}
 
-	// Mark as undone
-	err = updateTodoStatus(1, false)
+func TestMarkTodoAsUndone(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	insertTestTodo(t, "Test task", "medium", "", "")
+	markTodoAsDone(1)
+
+	err := markTodoAsUndone(1)
 	if err != nil {
-		t.Fatalf("updateTodoStatus(done=false) error = %v", err)
+		t.Fatalf("markTodoAsUndone() error = %v", err)
 	}
 
-	// Verify it's not done
-	todo, _ = getTodoByID(1)
+	todo, _ := getTodoByID(1)
 	if todo.Done {
 		t.Errorf("Todo should be undone, but Done = %v", todo.Done)
 	}
 }
 
-func TestUpdateTodoStatus_NotFound(t *testing.T) {
+func TestMarkTodoAsDone_NotFound(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	err := updateTodoStatus(999, true)
+	err := markTodoAsDone(999)
 	if err == nil {
-		t.Error("updateTodoStatus() should return error for non-existing todo")
+		t.Error("markTodoAsDone() should return error for non-existing todo")
 	}
 }
 
@@ -405,91 +409,78 @@ func TestUpdateTodo_NoChanges(t *testing.T) {
 	}
 }
 
-func TestCountTodos(t *testing.T) {
+func TestCountAllTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	// Insert test data
 	insertTestTodo(t, "Task 1", "medium", "", "")
 	insertTestTodo(t, "Task 2", "medium", "", "")
 	insertTestTodo(t, "Task 3", "medium", "", "")
 
-	// Mark one as done
-	updateTodoStatus(2, true)
-
-	tests := []struct {
-		name          string
-		completedOnly bool
-		wantCount     int
-	}{
-		{
-			name:          "all todos",
-			completedOnly: false,
-			wantCount:     3,
-		},
-		{
-			name:          "completed only",
-			completedOnly: true,
-			wantCount:     1,
-		},
+	count, err := countAllTodos()
+	if err != nil {
+		t.Fatalf("countAllTodos() error = %v", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			count, err := countTodos(tt.completedOnly)
-			if err != nil {
-				t.Errorf("countTodos() error = %v", err)
-				return
-			}
-			if count != tt.wantCount {
-				t.Errorf("countTodos() = %v, want %v", count, tt.wantCount)
-			}
-		})
+	if count != 3 {
+		t.Errorf("countAllTodos() = %v, want 3", count)
 	}
 }
 
-func TestClearTodos_CompletedOnly(t *testing.T) {
+func TestCountCompletedTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
 	insertTestTodo(t, "Task 1", "medium", "", "")
 	insertTestTodo(t, "Task 2", "medium", "", "")
 	insertTestTodo(t, "Task 3", "medium", "", "")
+	markTodoAsDone(2)
 
-	// Mark two as done
-	updateTodoStatus(1, true)
-	updateTodoStatus(2, true)
-
-	// Clear completed only
-	err := clearTodos(false)
+	count, err := countCompletedTodos()
 	if err != nil {
-		t.Fatalf("clearTodos(false) error = %v", err)
+		t.Fatalf("countCompletedTodos() error = %v", err)
 	}
-
-	// Should have 1 remaining
-	count, _ := countTodos(false)
 	if count != 1 {
-		t.Errorf("After clearTodos(false), count = %v, want 1", count)
+		t.Errorf("countCompletedTodos() = %v, want 1", count)
 	}
 }
 
-func TestClearTodos_All(t *testing.T) {
+func TestClearCompletedTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
 	insertTestTodo(t, "Task 1", "medium", "", "")
 	insertTestTodo(t, "Task 2", "medium", "", "")
-	updateTodoStatus(1, true)
+	insertTestTodo(t, "Task 3", "medium", "", "")
 
-	// Clear all
-	err := clearTodos(true)
+	markTodoAsDone(1)
+	markTodoAsDone(2)
+
+	err := clearCompletedTodos()
 	if err != nil {
-		t.Fatalf("clearTodos(true) error = %v", err)
+		t.Fatalf("clearCompletedTodos() error = %v", err)
 	}
 
-	// Should have 0 remaining
-	count, _ := countTodos(false)
+	count, _ := countAllTodos()
+	if count != 1 {
+		t.Errorf("After clearCompletedTodos(), count = %v, want 1", count)
+	}
+}
+
+func TestClearAllTodos(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	insertTestTodo(t, "Task 1", "medium", "", "")
+	insertTestTodo(t, "Task 2", "medium", "", "")
+	markTodoAsDone(1)
+
+	err := clearAllTodos()
+	if err != nil {
+		t.Fatalf("clearAllTodos() error = %v", err)
+	}
+
+	count, _ := countAllTodos()
 	if count != 0 {
-		t.Errorf("After clearTodos(true), count = %v, want 0", count)
+		t.Errorf("After clearAllTodos(), count = %v, want 0", count)
 	}
 }

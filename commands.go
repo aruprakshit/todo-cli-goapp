@@ -75,7 +75,7 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 }
 
 func cmdDone(id int) error {
-	err := updateTodoStatus(id, true)
+	err := markTodoAsDone(id)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func cmdDone(id int) error {
 }
 
 func cmdUndone(id int) error {
-	err := updateTodoStatus(id, false)
+	err := markTodoAsUndone(id)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,14 @@ func cmdEdit(id int, title, priority, category, dueDate string) error {
 }
 
 func cmdClear(clearAll bool) error {
-	count, err := countTodos(!clearAll)
+	var count int
+	var err error
+
+	if clearAll {
+		count, err = countAllTodos()
+	} else {
+		count, err = countCompletedTodos()
+	}
 	if err != nil {
 		return err
 	}
@@ -212,7 +219,11 @@ func cmdClear(clearAll bool) error {
 		return nil
 	}
 
-	err = clearTodos(clearAll)
+	if clearAll {
+		err = clearAllTodos()
+	} else {
+		err = clearCompletedTodos()
+	}
 	if err != nil {
 		return err
 	}
