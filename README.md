@@ -201,14 +201,16 @@ go test -v -run TestInsertTodo/basic ./... # Run a specific subtest
 go test -cover ./...
 
 # Detailed per-function coverage
-go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+mkdir -p coverage && go test -coverprofile=coverage/coverage.out ./... && go tool cover -func=coverage/coverage.out
 
 # HTML report (opens in browser)
-go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
+mkdir -p coverage && go test -coverprofile=coverage/coverage.out ./... && go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 # Coverage with race detection
 go test -race -cover ./...
 ```
+
+> **Note:** Add `coverage/` to your `.gitignore` file.
 
 ## Dependencies
 
