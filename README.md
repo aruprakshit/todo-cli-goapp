@@ -177,6 +177,39 @@ CREATE TABLE todos (
 )
 ```
 
+## Testing
+
+### Run all tests
+
+```bash
+go test ./...           # Run all tests
+go test -v ./...        # Run with verbose output
+```
+
+### Run specific tests
+
+```bash
+go test -v -run TestFunctionName ./...     # Run tests matching a pattern
+go test -v -run TestInsertTodo ./...       # Example: run TestInsertTodo
+go test -v -run TestInsertTodo/basic ./... # Run a specific subtest
+```
+
+### Test coverage
+
+```bash
+# Basic coverage percentage
+go test -cover ./...
+
+# Detailed per-function coverage
+go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+
+# HTML report (opens in browser)
+go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
+
+# Coverage with race detection
+go test -race -cover ./...
+```
+
 ## Dependencies
 
 - [go-sqlite3](https://github.com/mattn/go-sqlite3) - SQLite driver for Go
