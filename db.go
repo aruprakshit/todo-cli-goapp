@@ -25,7 +25,7 @@ func getTodoByID(id int) (*Todo, error) {
 	return todo, nil
 }
 
-func getAllTodos(showAll, showDone bool, priority, category string) ([]Todo, error) {
+func getAllTodos(showAll, showDone bool, priority Priority, category string) ([]Todo, error) {
 	query := `SELECT id, title, done, priority, category, created_at, due_date FROM todos`
 	conditions := []string{}
 	args := []any{}
@@ -43,7 +43,7 @@ func getAllTodos(showAll, showDone bool, priority, category string) ([]Todo, err
 
 	if priority != "" {
 		conditions = append(conditions, "priority = ?")
-		args = append(args, priority)
+		args = append(args, string(priority))
 	}
 
 	if len(conditions) > 0 {
@@ -60,13 +60,15 @@ func getAllTodos(showAll, showDone bool, priority, category string) ([]Todo, err
 	for rows.Next() {
 		var todo Todo
 		var done int
+		var priority string
 
-		err := rows.Scan(&todo.ID, &todo.Title, &done, &todo.Priority, &todo.Category, &todo.CreatedAt, &todo.DueDate)
+		err := rows.Scan(&todo.ID, &todo.Title, &done, &priority, &todo.Category, &todo.CreatedAt, &todo.DueDate)
 		if err != nil {
 			return nil, err
 		}
 
 		todo.Done = done == 1
+		todo.Priority = Priority(priority)
 		todos = append(todos, todo)
 	}
 
@@ -80,26 +82,28 @@ func getAllTodos(showAll, showDone bool, priority, category string) ([]Todo, err
 func scanTodo(row *sql.Row) (*Todo, error) {
 	var todo Todo
 	var done int
+	var priority string
 
-	err := row.Scan(&todo.ID, &todo.Title, &done, &todo.Priority, &todo.Category, &todo.CreatedAt, &todo.DueDate)
+	err := row.Scan(&todo.ID, &todo.Title, &done, &priority, &todo.Category, &todo.CreatedAt, &todo.DueDate)
 	if err != nil {
 		return nil, err
 	}
 
 	todo.Done = done == 1
+	todo.Priority = Priority(priority)
 	return &todo, nil
 }
 
-func insertTodo(title, priority, category, dueDate string) (int64, error) {
+func insertTodo(title string, priority Priority, category, dueDate string) (int64, error) {
 	var result sql.Result
 	var err error
 
 	if dueDate != "" {
 		query := `INSERT INTO todos (title, priority, category, due_date) VALUES (?, ?, ?, ?)`
-		result, err = db.Exec(query, title, priority, category, dueDate)
+		result, err = db.Exec(query, title, string(priority), category, dueDate)
 	} else {
 		query := `INSERT INTO todos (title, priority, category) VALUES (?, ?, ?)`
-		result, err = db.Exec(query, title, priority, category)
+		result, err = db.Exec(query, title, string(priority), category)
 	}
 
 	if err != nil {
@@ -140,7 +144,7 @@ func deleteTodo(id int) error {
 	return err
 }
 
-func updateTodo(id int, title, priority, category, dueDate string) error {
+func updateTodo(id int, title string, priority Priority, category, dueDate string) error {
 	updates := []string{}
 	args := []any{}
 
@@ -156,7 +160,7 @@ func updateTodo(id int, title, priority, category, dueDate string) error {
 
 	if priority != "" {
 		updates = append(updates, "priority = ?")
-		args = append(args, priority)
+		args = append(args, string(priority))
 	}
 
 	if category != "" {

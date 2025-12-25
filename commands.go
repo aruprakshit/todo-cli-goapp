@@ -9,9 +9,13 @@ func parseDate(dateStr string) (time.Time, error) {
 	return time.Parse("2006-01-02", dateStr)
 }
 
-func cmdAdd(title, priority, category, dueDate string) error {
+func cmdAdd(title string, priority Priority, category, dueDate string) error {
 	if title == "" {
 		return fmt.Errorf("title can not be empty")
+	}
+
+	if !priority.IsValid() {
+		return fmt.Errorf("invalid priority: %s. Use low, medium, or high", priority)
 	}
 
 	if dueDate != "" {
@@ -30,7 +34,7 @@ func cmdAdd(title, priority, category, dueDate string) error {
 	return nil
 }
 
-func cmdList(showAll, showDone bool, priority, category string) error {
+func cmdList(showAll, showDone bool, priority Priority, category string) error {
 	todos, err := getAllTodos(showAll, showDone, priority, category)
 	if err != nil {
 		return err
@@ -52,7 +56,7 @@ func cmdList(showAll, showDone bool, priority, category string) error {
 		if todo.Done {
 			statusDisplay = colorize(Green, "✓")
 		}
-		priorityDisplay := colorize(priorityColor(todo.Priority), todo.Priority)
+		priorityDisplay := colorize(priorityColor(todo.Priority), string(todo.Priority))
 		dueDateDisplay := formatDueDate(todo.DueDate)
 
 		table.AddRow([]string{
@@ -138,7 +142,7 @@ func cmdShow(id int) error {
 		fmt.Printf("  Status:    %s\n", colorize(Yellow, "Pending"))
 	}
 
-	fmt.Printf("  Priority:  %s\n", colorize(priorityColor(todo.Priority), todo.Priority))
+	fmt.Printf("  Priority:  %s\n", colorize(priorityColor(todo.Priority), string(todo.Priority)))
 
 	// Only show category if not empty
 	if todo.Category != "" {
@@ -157,7 +161,7 @@ func cmdShow(id int) error {
 	return nil
 }
 
-func cmdEdit(id int, title, priority, category, dueDate string) error {
+func cmdEdit(id int, title string, priority Priority, category, dueDate string) error {
 	_, err := getTodoByID(id)
 	if err != nil {
 		return err
@@ -168,6 +172,10 @@ func cmdEdit(id int, title, priority, category, dueDate string) error {
 		if err != nil {
 			return fmt.Errorf("invalid date format. Use YYYY-MM-DD")
 		}
+	}
+
+	if priority != "" && !priority.IsValid() {
+		return fmt.Errorf("invalid priority: %s. Use low, medium, or high", priority)
 	}
 
 	if title == "" && priority == "" && category == "" && dueDate == "" {

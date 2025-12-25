@@ -28,7 +28,7 @@ func teardownTestDB() {
 	}
 }
 
-func insertTestTodo(t *testing.T, title, priority, category, dueDate string) int64 {
+func insertTestTodo(t *testing.T, title string, priority Priority, category, dueDate string) int64 {
 	id, err := insertTodo(title, priority, category, dueDate)
 	if err != nil {
 		t.Fatalf("failed to insert test todo: %v", err)
@@ -43,7 +43,7 @@ func TestInsertTodo(t *testing.T) {
 	tests := []struct {
 		name     string
 		title    string
-		priority string
+		priority Priority
 		category string
 		dueDate  string
 		wantID   int64
@@ -51,7 +51,7 @@ func TestInsertTodo(t *testing.T) {
 		{
 			name:     "basic todo",
 			title:    "Test task",
-			priority: "medium",
+			priority: PriorityMedium,
 			category: "",
 			dueDate:  "",
 			wantID:   1,
@@ -59,7 +59,7 @@ func TestInsertTodo(t *testing.T) {
 		{
 			name:     "todo with all fields",
 			title:    "Full task",
-			priority: "high",
+			priority: PriorityHigh,
 			category: "work",
 			dueDate:  "2025-12-31",
 			wantID:   2,
@@ -67,7 +67,7 @@ func TestInsertTodo(t *testing.T) {
 		{
 			name:     "todo with category only",
 			title:    "Category task",
-			priority: "low",
+			priority: PriorityLow,
 			category: "personal",
 			dueDate:  "",
 			wantID:   3,
@@ -92,7 +92,7 @@ func TestGetTodoByID(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Test task", "high", "work", "")
+	insertTestTodo(t, "Test task", PriorityHigh, "work", "")
 
 	tests := []struct {
 		name      string
@@ -133,7 +133,7 @@ func TestGetTodoByID_FieldValues(t *testing.T) {
 	defer teardownTestDB()
 
 	// Insert a todo with all fields
-	insertTestTodo(t, "Complete task", "high", "work", "2025-12-31")
+	insertTestTodo(t, "Complete task", PriorityHigh, "work", "2025-12-31")
 
 	todo, err := getTodoByID(1)
 	if err != nil {
@@ -143,8 +143,8 @@ func TestGetTodoByID_FieldValues(t *testing.T) {
 	if todo.Title != "Complete task" {
 		t.Errorf("Title = %v, want %v", todo.Title, "Complete task")
 	}
-	if todo.Priority != "high" {
-		t.Errorf("Priority = %v, want %v", todo.Priority, "high")
+	if todo.Priority != PriorityHigh {
+		t.Errorf("Priority = %v, want %v", todo.Priority, PriorityHigh)
 	}
 	if todo.Category != "work" {
 		t.Errorf("Category = %v, want %v", todo.Category, "work")
@@ -172,9 +172,9 @@ func TestGetAllTodos_Filters(t *testing.T) {
 	defer teardownTestDB()
 
 	// Insert test data
-	insertTestTodo(t, "Task 1", "high", "work", "")
-	insertTestTodo(t, "Task 2", "low", "personal", "")
-	insertTestTodo(t, "Task 3", "high", "work", "")
+	insertTestTodo(t, "Task 1", PriorityHigh, "work", "")
+	insertTestTodo(t, "Task 2", PriorityLow, "personal", "")
+	insertTestTodo(t, "Task 3", PriorityHigh, "work", "")
 
 	// Mark Task 2 as done
 	markTodoAsDone(2)
@@ -183,7 +183,7 @@ func TestGetAllTodos_Filters(t *testing.T) {
 		name      string
 		showAll   bool
 		showDone  bool
-		priority  string
+		priority  Priority
 		category  string
 		wantCount int
 	}{
@@ -215,7 +215,7 @@ func TestGetAllTodos_Filters(t *testing.T) {
 			name:      "filter by priority",
 			showAll:   true,
 			showDone:  false,
-			priority:  "high",
+			priority:  PriorityHigh,
 			category:  "",
 			wantCount: 2,
 		},
@@ -231,7 +231,7 @@ func TestGetAllTodos_Filters(t *testing.T) {
 			name:      "filter by priority and category",
 			showAll:   true,
 			showDone:  false,
-			priority:  "low",
+			priority:  PriorityLow,
 			category:  "personal",
 			wantCount: 1,
 		},
@@ -255,7 +255,7 @@ func TestMarkTodoAsDone(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Test task", "medium", "", "")
+	insertTestTodo(t, "Test task", PriorityMedium, "", "")
 
 	err := markTodoAsDone(1)
 	if err != nil {
@@ -272,7 +272,7 @@ func TestMarkTodoAsUndone(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Test task", "medium", "", "")
+	insertTestTodo(t, "Test task", PriorityMedium, "", "")
 	markTodoAsDone(1)
 
 	err := markTodoAsUndone(1)
@@ -300,7 +300,7 @@ func TestDeleteTodo(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Test task", "medium", "", "")
+	insertTestTodo(t, "Test task", PriorityMedium, "", "")
 
 	err := deleteTodo(1)
 	if err != nil {
@@ -330,16 +330,16 @@ func TestUpdateTodo(t *testing.T) {
 	defer teardownTestDB()
 
 	// Insert a test todo
-	insertTestTodo(t, "Original title", "low", "personal", "")
+	insertTestTodo(t, "Original title", PriorityLow, "personal", "")
 
 	tests := []struct {
 		name         string
 		title        string
-		priority     string
+		priority     Priority
 		category     string
 		dueDate      string
 		wantTitle    string
-		wantPriority string
+		wantPriority Priority
 		wantCategory string
 	}{
 		{
@@ -349,17 +349,17 @@ func TestUpdateTodo(t *testing.T) {
 			category:     "",
 			dueDate:      "",
 			wantTitle:    "New title",
-			wantPriority: "low",
+			wantPriority: PriorityLow,
 			wantCategory: "personal",
 		},
 		{
 			name:         "update priority only",
 			title:        "",
-			priority:     "high",
+			priority:     PriorityHigh,
 			category:     "",
 			dueDate:      "",
 			wantTitle:    "New title",
-			wantPriority: "high",
+			wantPriority: PriorityHigh,
 			wantCategory: "personal",
 		},
 		{
@@ -369,7 +369,7 @@ func TestUpdateTodo(t *testing.T) {
 			category:     "work",
 			dueDate:      "",
 			wantTitle:    "New title",
-			wantPriority: "high",
+			wantPriority: PriorityHigh,
 			wantCategory: "work",
 		},
 	}
@@ -400,7 +400,7 @@ func TestUpdateTodo_NoChanges(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Test task", "medium", "", "")
+	insertTestTodo(t, "Test task", PriorityMedium, "", "")
 
 	// Update with empty values should not error
 	err := updateTodo(1, "", "", "", "")
@@ -413,9 +413,9 @@ func TestCountAllTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Task 1", "medium", "", "")
-	insertTestTodo(t, "Task 2", "medium", "", "")
-	insertTestTodo(t, "Task 3", "medium", "", "")
+	insertTestTodo(t, "Task 1", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 2", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 3", PriorityMedium, "", "")
 
 	count, err := countAllTodos()
 	if err != nil {
@@ -430,9 +430,9 @@ func TestCountCompletedTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Task 1", "medium", "", "")
-	insertTestTodo(t, "Task 2", "medium", "", "")
-	insertTestTodo(t, "Task 3", "medium", "", "")
+	insertTestTodo(t, "Task 1", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 2", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 3", PriorityMedium, "", "")
 	markTodoAsDone(2)
 
 	count, err := countCompletedTodos()
@@ -448,9 +448,9 @@ func TestClearCompletedTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Task 1", "medium", "", "")
-	insertTestTodo(t, "Task 2", "medium", "", "")
-	insertTestTodo(t, "Task 3", "medium", "", "")
+	insertTestTodo(t, "Task 1", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 2", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 3", PriorityMedium, "", "")
 
 	markTodoAsDone(1)
 	markTodoAsDone(2)
@@ -470,8 +470,8 @@ func TestClearAllTodos(t *testing.T) {
 	setupTestDB(t)
 	defer teardownTestDB()
 
-	insertTestTodo(t, "Task 1", "medium", "", "")
-	insertTestTodo(t, "Task 2", "medium", "", "")
+	insertTestTodo(t, "Task 1", PriorityMedium, "", "")
+	insertTestTodo(t, "Task 2", PriorityMedium, "", "")
 	markTodoAsDone(1)
 
 	err := clearAllTodos()

@@ -40,7 +40,7 @@ func main() {
 		}
 		title := args[0]
 
-		err := cmdAdd(title, *priority, *category, *dueDate)
+		err := cmdAdd(title, Priority(*priority), *category, *dueDate)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
@@ -53,7 +53,7 @@ func main() {
 		category := listCmd.String("category", "", "Filter by category")
 		listCmd.Parse(os.Args[2:])
 
-		err := cmdList(*showAll, *showDone, *priority, *category)
+		err := cmdList(*showAll, *showDone, Priority(*priority), *category)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
@@ -147,7 +147,7 @@ func main() {
 
 		editCmd.Parse(os.Args[3:])
 
-		err = cmdEdit(id, *title, *priority, *category, *dueDate)
+		err = cmdEdit(id, *title, Priority(*priority), *category, *dueDate)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)

@@ -47,13 +47,13 @@ func colorize(color, text string) string {
 	return color + text + Reset
 }
 
-func priorityColor(pValue string) string {
-	switch pValue {
-	case "high":
+func priorityColor(p Priority) string {
+	switch p {
+	case PriorityHigh:
 		return Red
-	case "medium":
+	case PriorityMedium:
 		return Yellow
-	case "low":
+	case PriorityLow:
 		return Green
 	default:
 		return Reset
