@@ -63,6 +63,75 @@ func TestParseDate(t *testing.T) {
 	}
 }
 
+func TestCmdAdd_Success(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name     string
+		title    string
+		priority Priority
+		category string
+		dueDate  string
+	}{
+		{
+			name:     "basic todo",
+			title:    "Buy groceries",
+			priority: PriorityMedium,
+			category: "",
+			dueDate:  "",
+		},
+		{
+			name:     "todo with all fields",
+			title:    "Complete project",
+			priority: PriorityHigh,
+			category: "work",
+			dueDate:  "2025-12-31",
+		},
+		{
+			name:     "todo with low priority",
+			title:    "Read a book",
+			priority: PriorityLow,
+			category: "personal",
+			dueDate:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := cmdAdd(tt.title, tt.priority, tt.category, tt.dueDate)
+			if err != nil {
+				t.Errorf("cmdAdd() unexpected error = %v", err)
+				return
+			}
+
+			// Verify the todo was actually inserted
+			todos, err := getAllTodos(true, false, "", "")
+			if err != nil {
+				t.Fatalf("failed to get todos: %v", err)
+			}
+
+			found := false
+			for _, todo := range todos {
+				if todo.Title == tt.title {
+					found = true
+					if todo.Priority != tt.priority {
+						t.Errorf("todo priority = %v, want %v", todo.Priority, tt.priority)
+					}
+					if todo.Category != tt.category {
+						t.Errorf("todo category = %v, want %v", todo.Category, tt.category)
+					}
+					break
+				}
+			}
+
+			if !found {
+				t.Errorf("todo with title %q was not inserted", tt.title)
+			}
+		})
+	}
+}
+
 func TestCmdAdd_Validation(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -111,6 +180,107 @@ func TestCmdAdd_Validation(t *testing.T) {
 			}
 			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
 				t.Errorf("cmdAdd() error = %q, want it to contain %q", err.Error(), tt.errContains)
+			}
+		})
+	}
+}
+
+func TestCmdEdit_Success(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name         string
+		title        string
+		priority     Priority
+		category     string
+		dueDate      string
+		wantTitle    string
+		wantPriority Priority
+		wantCategory string
+		wantDueDate  string
+	}{
+		{
+			name:         "update title only",
+			title:        "Updated title",
+			priority:     "",
+			category:     "",
+			dueDate:      "",
+			wantTitle:    "Updated title",
+			wantPriority: PriorityMedium, // original
+			wantCategory: "work",         // original
+			wantDueDate:  "",
+		},
+		{
+			name:         "update priority only",
+			title:        "",
+			priority:     PriorityHigh,
+			category:     "",
+			dueDate:      "",
+			wantTitle:    "Updated title", // from previous test
+			wantPriority: PriorityHigh,
+			wantCategory: "work",
+			wantDueDate:  "",
+		},
+		{
+			name:         "update category only",
+			title:        "",
+			priority:     "",
+			category:     "personal",
+			dueDate:      "",
+			wantTitle:    "Updated title",
+			wantPriority: PriorityHigh,
+			wantCategory: "personal",
+			wantDueDate:  "",
+		},
+		{
+			name:         "update due date",
+			title:        "",
+			priority:     "",
+			category:     "",
+			dueDate:      "2025-06-15",
+			wantTitle:    "Updated title",
+			wantPriority: PriorityHigh,
+			wantCategory: "personal",
+			wantDueDate:  "2025-06-15",
+		},
+	}
+
+	// Insert a test todo
+	testID := int(insertTestTodo(t, "Original title", PriorityMedium, "work", ""))
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := cmdEdit(testID, tt.title, tt.priority, tt.category, tt.dueDate)
+			if err != nil {
+				t.Errorf("cmdEdit() unexpected error = %v", err)
+				return
+			}
+
+			// Verify the todo was updated
+			todo, err := getTodoByID(testID)
+			if err != nil {
+				t.Fatalf("failed to get todo: %v", err)
+			}
+
+			if todo.Title != tt.wantTitle {
+				t.Errorf("todo title = %q, want %q", todo.Title, tt.wantTitle)
+			}
+			if todo.Priority != tt.wantPriority {
+				t.Errorf("todo priority = %v, want %v", todo.Priority, tt.wantPriority)
+			}
+			if todo.Category != tt.wantCategory {
+				t.Errorf("todo category = %q, want %q", todo.Category, tt.wantCategory)
+			}
+			if tt.wantDueDate != "" {
+				if !todo.DueDate.Valid {
+					t.Errorf("todo due date is not set, want %q", tt.wantDueDate)
+				} else {
+					gotDueDate := todo.DueDate.Time.Format("2006-01-02")
+					if gotDueDate != tt.wantDueDate {
+						t.Errorf("todo due date = %q, want %q", gotDueDate, tt.wantDueDate)
+					}
+				}
 			}
 		})
 	}
