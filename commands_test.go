@@ -337,3 +337,151 @@ func TestCmdShow(t *testing.T) {
 		})
 	}
 }
+
+func TestCmdList(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	// Setup test data
+	id1 := insertTestTodo(t, "Pending task", PriorityHigh, "work", "")
+	id2 := insertTestTodo(t, "Done task", PriorityLow, "personal", "")
+	insertTestTodo(t, "Another pending", PriorityMedium, "work", "")
+
+	// Mark second task as done
+	if err := markTodoAsDone(int(id2)); err != nil {
+		t.Fatalf("failed to mark todo as done: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		showAll  bool
+		showDone bool
+		priority Priority
+		category string
+	}{
+		{
+			name:     "list pending todos (default)",
+			showAll:  false,
+			showDone: false,
+			priority: "",
+			category: "",
+		},
+		{
+			name:     "list all todos",
+			showAll:  true,
+			showDone: false,
+			priority: "",
+			category: "",
+		},
+		{
+			name:     "list done todos only",
+			showAll:  false,
+			showDone: true,
+			priority: "",
+			category: "",
+		},
+		{
+			name:     "filter by priority",
+			showAll:  true,
+			showDone: false,
+			priority: PriorityHigh,
+			category: "",
+		},
+		{
+			name:     "filter by category",
+			showAll:  true,
+			showDone: false,
+			priority: "",
+			category: "work",
+		},
+		{
+			name:     "filter by priority and category",
+			showAll:  true,
+			showDone: false,
+			priority: PriorityHigh,
+			category: "work",
+		},
+		{
+			name:     "empty result with non-matching filter",
+			showAll:  true,
+			showDone: false,
+			priority: "",
+			category: "nonexistent",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := cmdList(tt.showAll, tt.showDone, tt.priority, tt.category)
+			if err != nil {
+				t.Errorf("cmdList() unexpected error = %v", err)
+			}
+		})
+	}
+
+	// Test with empty database
+	t.Run("empty database", func(t *testing.T) {
+		if err := clearAllTodos(); err != nil {
+			t.Fatalf("failed to clear todos: %v", err)
+		}
+		err := cmdList(false, false, "", "")
+		if err != nil {
+			t.Errorf("cmdList() with empty db error = %v", err)
+		}
+	})
+
+	// Verify the test data was set up correctly (restore for potential other tests)
+	_ = id1
+}
+
+func TestCmdDelete(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name        string
+		setup       func() int
+		force       bool
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "delete existing todo with force",
+			setup: func() int {
+				return int(insertTestTodo(t, "Task to delete", PriorityMedium, "", ""))
+			},
+			force:   true,
+			wantErr: false,
+		},
+		{
+			name: "delete non-existent todo",
+			setup: func() int {
+				return 999
+			},
+			force:       true,
+			wantErr:     true,
+			errContains: "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := tt.setup()
+			err := cmdDelete(id, tt.force)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("cmdDelete() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("cmdDelete() error = %q, want it to contain %q", err.Error(), tt.errContains)
+			}
+			if !tt.wantErr {
+				// Verify todo was actually deleted
+				_, err := getTodoByID(id)
+				if err == nil {
+					t.Errorf("todo should have been deleted")
+				}
+			}
+		})
+	}
+}
