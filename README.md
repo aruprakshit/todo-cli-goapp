@@ -212,6 +212,32 @@ go test -race -cover ./...
 
 > **Note:** Add `coverage/` to your `.gitignore` file.
 
+### Coverage excluding main.go
+
+For a more accurate view of test coverage, we exclude `main.go` from the calculation:
+
+```bash
+# Step 1: Generate coverage profile
+go test -coverprofile=coverage.out ./...
+
+# Step 2: Filter out main.go and recalculate
+grep -v "main.go" coverage.out > coverage_no_main.out
+
+# Step 3: View coverage excluding main.go
+go tool cover -func=coverage_no_main.out
+```
+
+**Why exclude main.go?**
+
+| Reason | Explanation |
+|--------|-------------|
+| CLI glue code | `main.go` contains argument parsing and command routing, not business logic |
+| Hard to unit test | CLI entry points require integration/E2E tests, not unit tests |
+| Low bug-catching value | If CLI routing breaks, it's immediately visible when running the app |
+| Fragile tests | Testing stdout-based CLI parsing creates brittle tests that break with minor formatting changes |
+
+The core business logic in `commands.go`, `db.go`, `models.go`, `table.go`, and `colors.go` is thoroughly unit tested. These files represent the testable application logic, while `main.go` serves as the entry point that wires everything together.
+
 ## Dependencies
 
 - [go-sqlite3](https://github.com/mattn/go-sqlite3) - SQLite driver for Go
