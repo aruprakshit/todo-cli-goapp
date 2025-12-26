@@ -63,11 +63,14 @@ go build -o todo
 ./todo add --priority high "Urgent task"
 ./todo add --priority low --category personal "Read a book"
 ./todo add --priority high --category work "Finish report"
+./todo add --due 2025-01-15 "Submit tax returns"
+./todo add --priority high --due 2025-02-01 --category work "Project deadline"
 ```
 
 **Flags:**
 - `--priority` - Set priority: low, medium (default), high
 - `--category` - Set category name
+- `--due` - Set due date in YYYY-MM-DD format
 
 ### List todos
 
@@ -105,13 +108,15 @@ go build -o todo
 ./todo edit 1 --title "Updated title"
 ./todo edit 1 --priority high
 ./todo edit 1 --category work
-./todo edit 1 --title "New title" --priority low --category personal
+./todo edit 1 --due 2025-03-01
+./todo edit 1 --title "New title" --priority low --category personal --due 2025-06-15
 ```
 
 **Flags:**
 - `--title` - New title
 - `--priority` - New priority
 - `--category` - New category
+- `--due` - New due date in YYYY-MM-DD format
 
 ### Delete a todo
 
