@@ -188,3 +188,152 @@ func TestCmdEdit_Validation(t *testing.T) {
 		})
 	}
 }
+
+func TestCmdDone(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name        string
+		setup       func() int
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "mark existing todo as done",
+			setup: func() int {
+				return int(insertTestTodo(t, "Test task", PriorityMedium, "", ""))
+			},
+			wantErr: false,
+		},
+		{
+			name: "non-existent todo",
+			setup: func() int {
+				return 999
+			},
+			wantErr:     true,
+			errContains: "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := tt.setup()
+			err := cmdDone(id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("cmdDone() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("cmdDone() error = %q, want it to contain %q", err.Error(), tt.errContains)
+			}
+			if !tt.wantErr {
+				todo, err := getTodoByID(id)
+				if err != nil {
+					t.Fatalf("failed to get todo: %v", err)
+				}
+				if !todo.Done {
+					t.Errorf("todo should be marked as done")
+				}
+			}
+		})
+	}
+}
+
+func TestCmdUndone(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name        string
+		setup       func() int
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "mark existing todo as undone",
+			setup: func() int {
+				id := int(insertTestTodo(t, "Test task", PriorityMedium, "", ""))
+				// First mark it as done
+				if err := markTodoAsDone(id); err != nil {
+					t.Fatalf("failed to mark todo as done: %v", err)
+				}
+				return id
+			},
+			wantErr: false,
+		},
+		{
+			name: "non-existent todo",
+			setup: func() int {
+				return 999
+			},
+			wantErr:     true,
+			errContains: "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := tt.setup()
+			err := cmdUndone(id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("cmdUndone() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("cmdUndone() error = %q, want it to contain %q", err.Error(), tt.errContains)
+			}
+			if !tt.wantErr {
+				todo, err := getTodoByID(id)
+				if err != nil {
+					t.Fatalf("failed to get todo: %v", err)
+				}
+				if todo.Done {
+					t.Errorf("todo should be marked as undone")
+				}
+			}
+		})
+	}
+}
+
+func TestCmdShow(t *testing.T) {
+	setupTestDB(t)
+	defer teardownTestDB()
+
+	tests := []struct {
+		name        string
+		setup       func() int
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "show existing todo",
+			setup: func() int {
+				return int(insertTestTodo(t, "Test task", PriorityHigh, "work", "2024-12-25"))
+			},
+			wantErr: false,
+		},
+		{
+			name: "non-existent todo",
+			setup: func() int {
+				return 999
+			},
+			wantErr:     true,
+			errContains: "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := tt.setup()
+			err := cmdShow(id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("cmdShow() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("cmdShow() error = %q, want it to contain %q", err.Error(), tt.errContains)
+			}
+		})
+	}
+}
